@@ -194,6 +194,15 @@ img {
 
 }
 
+.header-logo .logo-image{
+    width: 25px;
+    margin-bottom: -1px;
+}
+
+.nav__logo{
+    margin-left: -4px;
+}
+
 .nav__logo, .nav__toggle {
     color: var(--title-color);
     font-weight: var(--font-medium);
