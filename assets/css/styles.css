@@ -651,13 +651,14 @@ img {
 }
 
 .services__icon {
-    display: block;
+    /* display: block; */
     font-size: 1.5rem;
     color: var(--first-color);
     margin-bottom: var(--mb-1);
     border-radius: 5px;
     width: 135px;
     margin-top: -50px;
+    padding: 10px !important;
 }
 
 .services__title {
