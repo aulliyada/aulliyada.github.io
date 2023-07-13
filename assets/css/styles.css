@@ -649,7 +649,7 @@ img {
 .services__content {
     position: relative;
     background-color: var(--container-color);
-    padding: 0px;
+    padding: 4.5rem .5rem 1.25rem 1.25rem;;
     border-radius: .25rem;
     box-shadow: 0 2px 4px rgba(0,0,0,.15);
     transition: .3s;
@@ -667,7 +667,6 @@ img {
     border-radius: 5px;
     width: 135px;
     margin-top: -50px;
-    padding: 10px !important;
 }
 
 .services__title {
