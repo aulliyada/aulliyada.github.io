@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payroll Calculator Intern JW Bububbb</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css"
+    />
+    <style>
+      body {
+        background-color: #f8f9fa;
+      }
+      .container {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        color: #343a40;
+      }
+      .upload-box {
+        border: 2px dashed #007bff;
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        color: #007bff;
+        margin-bottom: 20px;
+      }
+      .upload-box:hover {
+        background-color: #e9ecef;
+      }
+      .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+      }
+      .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #004085;
+      }
+      .btn-success {
+        margin: 10px 0px;
+        background-color: #28a745;
+        border-color: #28a745;
+      }
+      .btn-success:hover {
+        background-color: #218838;
+        border-color: #1e7e34;
+      }
+      .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+      }
+      .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
+      }
+      .table th {
+        font-weight: bold;
+        background-color: #e9ecef;
+      }
+      .table td,
+      .table th {
+        border: 1px solid #dee2e6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h1 class="text-center">Calculator - Payroll Intern JW Bububbb</h1>
+      <div
+        id="uploadBox"
+        class="upload-box"
+        onclick="document.getElementById('fileInput').click()"
+      >
+        Drag and drop your Excel file here or click to select
+      </div>
+      <input
+        type="file"
+        id="fileInput"
+        style="display: none"
+        onchange="handleFileSelect(event)"
+        accept="xlsx,xls"
+      />
+      <button class="btn btn-primary" onclick="processFile()">
+        Process File
+      </button>
+      <button
+        class="btn btn-success"
+        id="downloadBtn"
+        style="display: none"
+        onclick="downloadFile()"
+      >
+        Download File
+      </button>
+      <button
+        class="btn btn-secondary"
+        id="nextFileBtn"
+        style="display: none"
+        onclick="processNextFile()"
+      >
+        Process Next File
+      </button>
+      <div id="output" class="mt-5"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script>
+      let finalData = [];
+      let selectedFile;
+
+      function handleFileSelect(event) {
+        selectedFile = event.target.files[0];
+        document.getElementById("uploadBox").textContent = selectedFile.name;
+      }
+
+      function processFile() {
+        if (!selectedFile) {
+          alert("Please choose a file first!");
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
+
+          // Process data
+          finalData = processData(json);
+
+          // Display result
+          displayResult(finalData);
+
+          // Show download and next file buttons
+          document.getElementById("downloadBtn").style.display = "block";
+          document.getElementById("nextFileBtn").style.display = "block";
+        };
+        reader.readAsArrayBuffer(selectedFile);
+      }
+
+      function processData(data) {
+        const processedData = [];
+        const dataMap = {};
+
+        data.forEach((row) => {
+          const [date, time, period] = row.Time.split(" ");
+          let [hour, minute] = time.split(":");
+          hour = parseInt(hour, 10);
+          minute = parseInt(minute, 10);
+
+          if (period === "PM" && hour !== 12) {
+            hour += 12;
+          } else if (period === "AM" && hour === 12) {
+            hour = 0;
+          }
+
+          const formattedTime = `${hour.toString().padStart(2, "0")}:${minute
+            .toString()
+            .padStart(2, "0")}`;
+          const formattedDate = formatDate(date);
+
+          const key = `${row["AC-No"]}-${row.Name}-${formattedDate}`;
+          if (!dataMap[key]) {
+            dataMap[key] = {
+              "AC-No": row["AC-No."],
+              No: row.No,
+              Name: row.Name,
+              Date: formattedDate,
+              In: "",
+              "": "-",
+              Out: "",
+              25000: 0,
+            };
+          }
+
+          if (row.State === "C/In") {
+            dataMap[key].In = formattedTime;
+          } else {
+            dataMap[key].Out = formattedTime;
+          }
+
+          // Update kolom 25000
+          if (dataMap[key].In && dataMap[key].Out) {
+            dataMap[key]["25000"] = 1;
+          } else {
+            dataMap[key]["25000"] = 0;
+          }
+        });
+
+        for (const key in dataMap) {
+          processedData.push(dataMap[key]);
+        }
+
+        // Mengelompokkan data berdasarkan nama
+        const groupedData = {};
+        processedData.forEach((row) => {
+          if (!groupedData[row.Name]) {
+            groupedData[row.Name] = [];
+          }
+          groupedData[row.Name].push(row);
+        });
+
+        // Menambahkan baris termerger dan menghitung jumlah presensi serta payroll
+        const finalData = [];
+        Object.keys(groupedData).forEach((name) => {
+          const rows = groupedData[name];
+          finalData.push(...rows);
+
+          const totalPresence = rows.reduce(
+            (sum, row) => sum + row["25000"],
+            0
+          );
+          const payroll = totalPresence * 25000;
+          finalData.push({
+            "AC-No": "",
+            No: "",
+            Name: name,
+            Date: "",
+            In: "",
+            Out: "",
+            25000: totalPresence,
+            Payroll: payroll,
+          });
+
+          // Menambahkan baris kosong
+          finalData.push({
+            "AC-No": "",
+            No: "",
+            Name: "",
+            Date: "",
+            In: "",
+            Out: "",
+            25000: "",
+            Payroll: "",
+          });
+        });
+
+        return finalData;
+      }
+
+      function formatDate(dateString) {
+        const date = new Date(dateString);
+        const day = date.getDate();
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        const month = monthNames[date.getMonth()];
+        return `${day}-${month}`;
+      }
+
+      function displayResult(data) {
+        const output = document.getElementById("output");
+        output.innerHTML = "";
+
+        const table = document.createElement("table");
+        table.className = "table table-bordered";
+
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        const headers = [
+          "AC-No",
+          "No",
+          "Name",
+          "Date",
+          "In",
+          "Out",
+          "25000",
+          "Payroll",
+        ];
+        headers.forEach((header) => {
+          const th = document.createElement("th");
+          th.textContent = header;
+          th.style.fontWeight = "bold";
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        data.forEach((row) => {
+          const tr = document.createElement("tr");
+          headers.forEach((header) => {
+            const td = document.createElement("td");
+            td.textContent = row[header] || "";
+            td.style.border = "1px solid black";
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+
+        output.appendChild(table);
+      }
+
+      function downloadFile() {
+        const worksheet = XLSX.utils.json_to_sheet(finalData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "ProcessedData");
+        XLSX.writeFile(workbook, "Payroll Intern JW Marriot.xlsx");
+      }
+
+      function processNextFile() {
+        location.reload();
+      }
+    </script>
+  </body>
+</html>
